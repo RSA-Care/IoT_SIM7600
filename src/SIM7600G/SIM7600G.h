@@ -16,7 +16,7 @@ typedef struct
   String longitude = "0.00";
 } gpsReading;
 
-void beginSIM7600G();
+void SIM7600Gbegin();
 void beginGPS();
 gpsReading getGPS();
 void publish(String payload);
