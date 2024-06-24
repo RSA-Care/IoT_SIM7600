@@ -1,5 +1,4 @@
 #include <Arduino.h>
-#include <vector>
 #include "SIM7600G.h"
 
 HardwareSerial SerialAT(2);
@@ -21,8 +20,8 @@ String sendAT(String command)
   {
     while (SerialAT.available())
     {
-      String temp = SerialAT.readString();
-      response += temp;
+      String temp = SerialAT.readStringUntil('\n');
+      temp.trim();
       Serial.println(temp);
       if (temp.indexOf("OK") != -1)
       {
@@ -31,6 +30,10 @@ String sendAT(String command)
       else if (temp.indexOf("ERROR") != -1)
       {
         error_status = true;
+      }
+      else
+      {
+        response += temp;
       }
     }
     delay(500);
@@ -59,12 +62,12 @@ void beginSIM7600G()
 {
   startTime = millis();
   SerialAT.begin(115200);
-  Serial.println("Initializing SIM7600G...");
+  println("SIM7600G");
 
   bool ready = false;
   bool sim_ready = true;
 
-  while (!ready)
+  while (!ready && (millis() - startTime) < 60000)
   {
     while (SerialAT.available())
     {
@@ -97,34 +100,34 @@ void beginSIM7600G()
   Serial.println("=== End of SIM7600 Initialization ===");
 }
 
-std::vector<String> splitString(const String &input, char delimiter)
+String splitString(String input, char delimiter, int index = 0)
 {
-  std::vector<String> tokens;
-  String currentToken = "";
+  input.trim();
+  String result;
+  String res[input.length()];
+  int prev_delimiter_index = 0;
+  int temp_index = 0;
 
   for (int i = 0; i < input.length(); i++)
   {
-    char c = input[i];
-    if (c == delimiter)
+    if (input[i] == delimiter)
     {
-      if (!currentToken.isEmpty())
+      if (temp_index == index)
       {
-        tokens.push_back(currentToken);
+        result = input.substring(prev_delimiter_index, i);
       }
-      currentToken = "";
-    }
-    else
-    {
-      currentToken += c;
+      // res[temp_index] = input.substring(prev_delimiter_index + 1, i);
+      temp_index++;
+      prev_delimiter_index = i;
     }
   }
 
-  if (!currentToken.isEmpty())
+  if (result.isEmpty())
   {
-    tokens.push_back(currentToken);
+    result = input.substring(prev_delimiter_index + 1, input.length());
   }
 
-  return tokens;
+  return result;
 }
 
 gpsReading getGPS()
@@ -143,30 +146,11 @@ gpsReading getGPS()
   OK
   */
   String gps_data = sendAT("AT+CGPSINFO");
-  std::vector<String> data;
   bool complete = false;
 
-  std::vector<String> _gps_data = splitString(gps_data, ':');
-  for (String _data : _gps_data)
-  {
-    data = splitString(_data, ',');
-  }
+  String _data = splitString(gps_data, ' ', 1);
 
-  if (data.empty())
-  {
-    return gps;
-  }
-
-  for (String dat : data)
-  {
-    Serial.println(dat);
-  }
-
-  float lat = data[0].toFloat();
-  float lon = data[2].toFloat();
-
-  Serial.println("Latitude  : " + String(lat));
-  Serial.println("Longitude : " + String(lon));
+  Serial.println(_data);
 
   return gps;
 }
