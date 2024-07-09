@@ -155,13 +155,11 @@ gpsReading getGPS()
 
   String _data = splitString(gps_data, ' ', 1);
 
-  Serial.println("GPS Data : " + _data);
-
   String lat = splitString(_data, ',');
   String lon = splitString(_data, ',', 2);
 
-  Serial.println("Latitude : " + lat);
-  Serial.println("Longitude : " + lon);
+  gps.latitude = lat;
+  gps.longitude = lon;
 
   return gps;
 }
@@ -176,22 +174,34 @@ void MQTTStart()
   }
 
   String client_acquired = sendAT("AT+CMQTTACCQ=0,\"" + client_id + "\",0,4");
-  if (client_acquired.indexOf("OK") == -1)
-  {
-    Serial.println("Failed to acquire client");
-    return;
-  }
   Serial.println("Client id: " + client_id);
 
   String connection = sendAT("AT+CMQTTCONNECT=0,\"tcp://" + broker_ip + "\",120,1");
-  if (connection.indexOf("OK") == -1)
-  {
-    Serial.println("Failed to connect to broker");
-  }
 
   return;
 }
 
 void publish(String payload)
 {
+  String topic = "test";
+
+  String response;
+  bool publish = false;
+  SerialAT.print("AT+CMQTTTOPIC=0," + String(topic.length()) + "\r");
+  delay(500);
+  while (!publish)
+  {
+    while (SerialAT.available())
+    {
+      String temp = SerialAT.readStringUntil('\n');
+      Serial.println(temp);
+      if (temp.indexOf("OK") != -1)
+      {
+        publish = true;
+      }
+    }
+
+    SerialAT.print(topic + "\r");
+    delay(500);
+  }
 }

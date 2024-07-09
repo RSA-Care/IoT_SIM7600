@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include <HardwareSerial.h>
 #include "OLED/SSD1306.h"
+#include "Data/DataHandler.h"
 
 // Your GPRS credentials, if any
 const char apn[] = "internet";
