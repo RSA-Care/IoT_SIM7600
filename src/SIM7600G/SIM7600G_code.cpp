@@ -183,7 +183,8 @@ void MQTTStart()
 
 void publish(String payload)
 {
-  String topic = "test";
+  // String topic = "test";
+  String topic = getData("/topic.txt");
 
   String response;
   bool publish = false;

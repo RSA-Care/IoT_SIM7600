@@ -1,5 +1,7 @@
 #include "DataHandler.h"
 
+bool SPIFFSState = false;
+
 // const char *filename = "/data.json";
 
 bool SPIFFSBegin()
@@ -7,10 +9,14 @@ bool SPIFFSBegin()
   bool start = SPIFFS.begin();
   if (!start)
   {
-    Serial.println("An Error has occurred while mounting SPIFFS");
+    SPIFFSState = false;
+    Serial.println("An Error has occurred while mounting SPIFFS\nFormating SPIFFS...");
+    SPIFFS.format(); // Do not use this when in production, rather made the user format it manually
+    return SPIFFSBegin();
   }
   else
   {
+    SPIFFSState = true;
     Serial.println("SPIFFS mounted successfully");
   }
 
@@ -19,6 +25,11 @@ bool SPIFFSBegin()
 
 String getData(String filename)
 {
+  if (filename.indexOf("/") != 0)
+  {
+    filename = "/" + filename;
+  }
+
   bool fileCheck = SPIFFS.exists(filename);
   if (!fileCheck)
   {
@@ -65,19 +76,14 @@ String getData(String filename)
   // Deallocate memory used by the buffer
   delete[] buffer;
 
+  dataString.trim();
+
   return dataString;
 }
 
 bool saveData(String data, String filename)
 {
-  bool fileCheck = SPIFFS.exists(filename);
-  if (!fileCheck)
-  {
-    Serial.println("File does not exist");
-    return false;
-  }
-
-  File file = SPIFFS.open(filename, FILE_READ);
+  File file = SPIFFS.open(filename, FILE_WRITE);
 
   if (!file)
   {
@@ -90,4 +96,34 @@ bool saveData(String data, String filename)
   file.close();
 
   return true;
+}
+
+bool randomizeMQTTTopic(int length)
+{
+  unsigned long seed = millis();
+  const char charSet[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+  clearScreen();
+  println("Starting Randomize Topic.");
+
+  String randomText;
+  for (int i = 0; i < length; i++)
+  {
+    int randomIndex = (seed >> i) % (sizeof(charSet) - 2);
+    randomText += charSet[randomIndex];
+  }
+
+  println("TOPIC : " + randomText);
+  println("Saving topic.");
+
+  if (saveData(randomText, "/topic.txt"))
+  {
+    println("Topic saved successfully.");
+    return true;
+  }
+  else
+  {
+    println("ERROR: an error has occured when attempting to save topic\nSPIFFS ERROR");
+    return false;
+  }
 }
