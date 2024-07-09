@@ -76,9 +76,10 @@ void beginGPS()
 
 void SIM7600Gbegin()
 {
+  Serial.println("Starting SIM7600");
   startTime = millis();
+  Serial.println("Start time : " + String(startTime));
   SerialAT.begin(115200);
-  println("SIM7600G");
 
   bool ready = false;
   bool sim_ready = true;
@@ -106,6 +107,15 @@ void SIM7600Gbegin()
     return;
   }
 
+  clearScreen();
+  println("GPS TRACKER");
+  println("FOR DOWN SYNDROME");
+  for (int i = 0; i < 21; i++)
+  {
+    print("=");
+  }
+  println("SIM7600G");
+
   sendAT("ATI");
 
   sendAT("AT+CMEE=2");
@@ -114,7 +124,7 @@ void SIM7600Gbegin()
 
   unsigned long endTime = millis() - startTime;
   float duration = endTime / 1000;
-  Serial.println("Duration : " + String(duration) + " Second");
+  println("Duration : " + String(duration) + " Second");
   Serial.println("=== End of SIM7600 Initialization ===");
 }
 
@@ -231,6 +241,10 @@ void publish(String payload)
       if (temp.indexOf("OK") != -1)
       {
         set_topic = true;
+      }
+      else if (temp.indexOf("ERROR") != -1)
+      {
+        error = true;
       }
       SerialAT.print(topic + "\r");
     }

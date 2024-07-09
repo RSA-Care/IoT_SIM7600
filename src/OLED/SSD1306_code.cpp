@@ -14,19 +14,15 @@ void oledBegin()
     Serial.println(F("SSD1306 allocation failed"));
     return;
   }
-
-  display.display();
-  delay(1000);
-
   display.clearDisplay();
   display.setTextColor(WHITE);
   display.setTextSize(1);
   display.setCursor(0, 0);
-  println("GPS TRACKER");
-  println("FOR DOWN SYNDROME");
-  println("=================");
+
+  display.drawBitmap(0, 0, logo_dst, SCREEN_WIDTH, SCREEN_HEIGHT, SSD1306_WHITE);
+
   display.display();
-  delay(2000);
+  delay(1000);
   return;
 }
 
