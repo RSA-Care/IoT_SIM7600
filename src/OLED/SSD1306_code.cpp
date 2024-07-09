@@ -67,3 +67,20 @@ void println(String message)
 
   display.display();
 }
+
+void header(String signal, String topic)
+{
+  clearScreen();
+  String text = "DST Tracker";
+  int width = display.width();
+  int height = display.height();
+  int box_height = 13;
+  display.drawRect(0, 0, width, box_height, SSD1306_WHITE);
+  display.setCursor(2, 3);
+  display.print(text);
+  display.setCursor(display.width() - 1 - (topic.length() * 6), 3);
+  display.println(topic);
+
+  display.setCursor(display.getCursorX(), display.getCursorY() + 5);
+  display.display();
+}

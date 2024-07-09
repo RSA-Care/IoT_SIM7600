@@ -9,35 +9,51 @@ bool gps_state = false;
 
 unsigned long startTime = 0;
 
-String sendAT(String command)
+String sendAT(String command, String expected = "")
 {
   SerialAT.print(command + "\r");
 
   String response = "";
   bool ok_status = false;
   bool error_status = false;
-  while (!ok_status && !error_status)
+  bool accept_response = false;
+  while (SerialAT.available() || (!ok_status && !error_status))
   {
-    while (SerialAT.available())
+    String temp = SerialAT.readStringUntil('\n');
+    temp.trim();
+    Serial.println(temp);
+    if (expected.length() > 0 && temp.indexOf(expected) != -1)
     {
-      String temp = SerialAT.readStringUntil('\n');
-      temp.trim();
-      Serial.println(temp);
-      if (temp.indexOf("OK") != -1)
-      {
-        ok_status = true;
-      }
-      else if (temp.indexOf("ERROR") != -1)
-      {
-        error_status = true;
-      }
-      else
-      {
-        response += temp;
-      }
+      response = temp;
+      ok_status = true;
     }
-    delay(500);
+
+    if (temp.indexOf(command) != -1)
+    {
+      accept_response = true;
+    }
+
+    if ((temp.indexOf("OK") != -1 && accept_response))
+    {
+      ok_status = true;
+    }
+    else if (temp.indexOf("ERROR") != -1 && accept_response)
+    {
+      error_status = true;
+    }
+    else if (temp.indexOf("RDY") != -1)
+    {
+      response = "";
+      ok_status = true;
+    }
+    else
+    {
+      response += temp;
+    }
+
+    response += "\n";
   }
+  delay(500);
 
   return response;
 }
@@ -91,6 +107,8 @@ void SIM7600Gbegin()
   }
 
   sendAT("ATI");
+
+  sendAT("AT+CMEE=2");
 
   beginGPS();
 
@@ -155,28 +173,28 @@ gpsReading getGPS()
 
   String _data = splitString(gps_data, ' ', 1);
 
-  String lat = splitString(_data, ',');
-  String lon = splitString(_data, ',', 2);
+  float lat = splitString(_data, ',').toFloat();
+  float lon = splitString(_data, ',', 2).toFloat();
 
-  gps.latitude = lat;
-  gps.longitude = lon;
+  gps.latitude = String(lat);
+  gps.longitude = String(lon);
 
   return gps;
 }
 
 void MQTTStart()
 {
-  String start = sendAT("AT+CMQTTSTART");
-  if (start.indexOf("+CMQTTSTART: 0") == -1)
+  String start = sendAT("AT+CMQTTSTART", "+CMQTTSTART: 0");
+
+  if (start.indexOf("+CMQTTSTART: 23") != -1)
   {
-    Serial.println("MQTT failed to start");
+    Serial.println("MQTT Opened");
+    String client_acquired = sendAT("AT+CMQTTACCQ=0,\"" + client_id + "\",0,4");
+    Serial.println("Client id: " + client_id);
+
+    String connection = sendAT("AT+CMQTTCONNECT=0,\"tcp://" + broker_ip + "\",120,1");
     return;
   }
-
-  String client_acquired = sendAT("AT+CMQTTACCQ=0,\"" + client_id + "\",0,4");
-  Serial.println("Client id: " + client_id);
-
-  String connection = sendAT("AT+CMQTTCONNECT=0,\"tcp://" + broker_ip + "\",120,1");
 
   return;
 }
@@ -185,12 +203,49 @@ void publish(String payload)
 {
   // String topic = "test";
   String topic = getData("/topic.txt");
+  if (topic.length() == 0)
+  {
+    randomizeMQTTTopic();
+    topic = getData("/topic.txt");
+  }
 
   String response;
+  bool set_topic = false;
+  bool set_payload = false;
   bool publish = false;
+  bool error = false;
   SerialAT.print("AT+CMQTTTOPIC=0," + String(topic.length()) + "\r");
   delay(500);
-  while (!publish)
+  while (!set_topic && !error)
+  {
+    while (SerialAT.available())
+    {
+      String temp = SerialAT.readStringUntil('\n');
+      Serial.println(temp);
+      if (temp.indexOf("+CMQTTTOPIC: 0,11") != -1)
+      {
+        Serial.println("ERROR: no connection\nStarting MQTT on SIM7600...");
+        MQTTStart();
+        error = true;
+      }
+      if (temp.indexOf("OK") != -1)
+      {
+        set_topic = true;
+      }
+      SerialAT.print(topic + "\r");
+    }
+
+    delay(500);
+  }
+
+  if (error)
+  {
+    return;
+  }
+
+  SerialAT.print("AT+CMQTTPAYLOAD=0," + String(payload.length()) + "\r");
+  delay(500);
+  while (!set_payload && !error)
   {
     while (SerialAT.available())
     {
@@ -198,11 +253,34 @@ void publish(String payload)
       Serial.println(temp);
       if (temp.indexOf("OK") != -1)
       {
-        publish = true;
+        set_payload = true;
       }
+      SerialAT.print(payload + "\r");
     }
 
-    SerialAT.print(topic + "\r");
     delay(500);
   }
+
+  if (error)
+  {
+    return;
+  }
+
+  sendAT("AT+CMQTTPUB=0,0,120,1", "+CMQTTPUB: 0,0");
+}
+
+SIM7600 getDeviceInfo()
+{
+  SIM7600 device;
+
+  String signal_data = sendAT("AT+CSQ");
+  String raw_signal_data = splitString(signal_data, ':');
+  raw_signal_data.replace(" ", "");
+  String rssi = splitString(raw_signal_data, ',');
+  String ber = splitString(raw_signal_data, ',', 1);
+
+  device.signalStrength = rssi.toInt();
+  device.errorRate = ber.toInt();
+
+  return device;
 }

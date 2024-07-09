@@ -7,10 +7,10 @@
 void setup()
 {
   Serial.begin(115200);
-  SPIFFSBegin();
   oledBegin();
-  dhtBegin();
   SIM7600Gbegin();
+  SPIFFSBegin();
+  dhtBegin();
 }
 
 void loop()
@@ -18,8 +18,12 @@ void loop()
   gpsReading gps = getGPS();
   dhtReading dht = getDHT();
 
+  String payload = gps.longitude + "," + gps.latitude + "," + String(dht.temperature) + "," + String(dht.humidity);
+  publish(payload);
+
   // display on oled screen
-  clearScreen();
+  SIM7600 gprs = getDeviceInfo();
+  header(String(gprs.signalStrength), getData("topic.txt"));
   println("Latitude : " + gps.latitude);
   println("Longitude : " + gps.longitude);
   println("Temperature : " + String(dht.temperature));

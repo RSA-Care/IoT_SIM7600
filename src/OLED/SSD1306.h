@@ -11,6 +11,7 @@
 void oledBegin();
 void print(String message);
 void println(String message);
+void header(String signal, String topic);
 void clearScreen();
 
 #endif // SSD1306_h
