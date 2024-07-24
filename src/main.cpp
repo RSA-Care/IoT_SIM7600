@@ -11,6 +11,10 @@ void setup()
   SIM7600Gbegin();
   SPIFFSBegin();
   dhtBegin();
+
+  clearScreen();
+  SIM7600 gprs = getDeviceInfo();
+  header(String(gprs.signalStrength), getData("topic.txt"));
 }
 
 void loop()
@@ -22,12 +26,8 @@ void loop()
   publish(payload);
 
   // display on oled screen
-  SIM7600 gprs = getDeviceInfo();
-  header(String(gprs.signalStrength), getData("topic.txt"));
-  println("Latitude : " + gps.latitude);
-  println("Longitude : " + gps.longitude);
-  println("Temperature : " + String(dht.temperature));
-  println("Humidity : " + String(dht.humidity));
+  gpsDisplay(String(gps.latitude), String(gps.longitude));
+  dhtDisplay(String(dht.temperature), String(dht.humidity));
 
   delay(10000);
 }

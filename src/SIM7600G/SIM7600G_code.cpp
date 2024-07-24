@@ -4,8 +4,9 @@
 HardwareSerial SerialAT(2);
 
 String broker_ip = "34.30.152.206";
-String client_id = "customize_id";
 bool gps_state = false;
+bool ready = false;
+bool sim_ready = true;
 
 unsigned long startTime = 0;
 
@@ -17,7 +18,8 @@ String sendAT(String command, String expected = "")
   bool ok_status = false;
   bool error_status = false;
   bool accept_response = false;
-  while (SerialAT.available() || (!ok_status && !error_status))
+  startTime = millis();
+  while (SerialAT.available() || (!ok_status && !error_status) && millis() - startTime < 120000)
   {
     String temp = SerialAT.readStringUntil('\n');
     temp.trim();
@@ -55,6 +57,27 @@ String sendAT(String command, String expected = "")
   }
   delay(500);
 
+  if (millis() - startTime > 120000)
+  {
+    SerialAT.print("AT+CFUN=6\r");
+    ready = false;
+    while (!ready)
+    {
+      while (SerialAT.available())
+      {
+        String temp = SerialAT.readStringUntil('\n');
+        temp.trim();
+        Serial.println(temp);
+        if (temp.indexOf("RDY") != -1)
+        {
+          response = "";
+          ready = true;
+        }
+      }
+    }
+    delay(500);
+  }
+
   return response;
 }
 
@@ -81,15 +104,12 @@ void SIM7600Gbegin()
   Serial.println("Start time : " + String(startTime));
   SerialAT.begin(115200);
 
-  bool ready = false;
-  bool sim_ready = true;
-
   while (!ready && (millis() - startTime) < 60000)
   {
     while (SerialAT.available())
     {
       String response = SerialAT.readString();
-      Serial.println(response);
+      println(response);
       if (response.indexOf("+CME ERROR: SIM not inserted") != -1)
       {
         sim_ready = false;
@@ -102,7 +122,7 @@ void SIM7600Gbegin()
     delay(500);
   }
 
-  if (!sim_ready)
+  if (!sim_ready || !ready)
   {
     return;
   }
@@ -194,6 +214,18 @@ gpsReading getGPS()
 
 void MQTTStart()
 {
+  unsigned long seed = millis();
+  const char charSet[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+  Serial.println("Starting Randomize Topic.");
+
+  String client_id;
+  for (int i = 0; i < 10; i++)
+  {
+    int randomIndex = (seed >> i) % (sizeof(charSet) - 2);
+    client_id += charSet[randomIndex];
+  }
+
   String start = sendAT("AT+CMQTTSTART", "+CMQTTSTART: 0");
 
   if (start.indexOf("+CMQTTSTART: 23") != -1)
