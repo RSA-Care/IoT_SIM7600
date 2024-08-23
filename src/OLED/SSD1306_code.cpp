@@ -65,13 +65,21 @@ void println(String message)
 }
 
 // Execute only once
-void header(String signal, String topic)
+void header(String topic, bool gps)
 {
-  clearScreen();
+  display.drawRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, BLACK);
   String text = "DST Tracker";
   int width = display.width();
   int box_height = 14;
   display.drawRect(0, 0, width, box_height, SSD1306_WHITE);
+  if (gps)
+  {
+    display.drawCircle(display.width() - 12 - (topic.length() * 6), 7, 4, WHITE);
+  }
+  else
+  {
+    display.drawCircle(display.width() - 12 - (topic.length() * 6), 7, 4, INVERSE);
+  }
   display.setCursor(3, 3);
   display.print(text);
   display.setCursor(display.width() - 3 - (topic.length() * 6), 3);

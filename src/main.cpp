@@ -4,8 +4,11 @@
 #include "DHT/DHT22.h"
 #include "Data/DataHandler.h"
 
+unsigned long mainStartTime = 0;
+
 void setup()
 {
+  mainStartTime = millis();
   Serial.begin(115200);
   oledBegin();
   SIM7600Gbegin();
@@ -13,8 +16,7 @@ void setup()
   dhtBegin();
 
   clearScreen();
-  SIM7600 gprs = getDeviceInfo();
-  header(String(gprs.signalStrength), getData("topic.txt"));
+  header(getData("topic.txt"), false);
 }
 
 void loop()
@@ -22,12 +24,14 @@ void loop()
   gpsReading gps = getGPS();
   dhtReading dht = getDHT();
 
-  String payload = gps.longitude + "," + gps.latitude + "," + String(dht.temperature) + "," + String(dht.humidity);
-  publish(payload);
-
   // display on oled screen
   gpsDisplay(String(gps.latitude), String(gps.longitude));
   dhtDisplay(String(dht.temperature), String(dht.humidity));
 
-  delay(10000);
+  if (millis() - mainStartTime > 5000)
+  {
+    String payload = gps.latitude + "," + gps.longitude + "," + String(dht.temperature) + "," + String(dht.humidity);
+    publish(payload);
+    mainStartTime = millis();
+  }
 }

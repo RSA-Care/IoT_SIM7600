@@ -25,7 +25,7 @@ bool SPIFFSBegin()
 
 String getData(String filename)
 {
-  if (filename.indexOf("/") != 0)
+  if (filename[0] != '/')
   {
     filename = "/" + filename;
   }
@@ -83,6 +83,11 @@ String getData(String filename)
 
 bool saveData(String data, String filename)
 {
+  if (filename[0] != '/')
+  {
+    filename = "/" + filename;
+  }
+
   File file = SPIFFS.open(filename, FILE_WRITE);
 
   if (!file)
@@ -116,7 +121,7 @@ bool randomizeMQTTTopic(int length)
   println("TOPIC : " + randomText);
   println("Saving topic.");
 
-  if (saveData(randomText, "/topic.txt"))
+  if (saveData(randomText, "topic.txt"))
   {
     println("Topic saved successfully.");
     return true;
