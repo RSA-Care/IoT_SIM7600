@@ -55,7 +55,7 @@ String sendAT(String command, String expected = "")
 
     response += "\n";
   }
-  delay(500);
+  // delay(500);
 
   if (millis() - startTime > 120000)
   {
@@ -198,6 +198,9 @@ gpsReading getGPS()
   +CGPSINFO: 0614.354283,S,10651.371415,E,230624,104328.0,2.9,0.0,
 
   OK
+
+
+  EXPECTED OUTCOME: -6.9692767,107.6255821
   */
   String gps_data = sendAT("AT+CGPSINFO");
   bool complete = false;
@@ -217,7 +220,8 @@ gpsReading getGPS()
     Serial.println(saved_data);
     if (!saved_data.isEmpty())
     {
-      Serial.println("Saved data is empty");
+      Serial.println("SPIFFS ERROR");
+      Serial.println("Saved data is empty!");
       return gps;
     }
 
@@ -253,6 +257,8 @@ gpsReading getGPS()
 
   gps.latitude = startLat + lat_deg + "." + lat_min;
   gps.longitude = lon_deg + "." + lon_min;
+
+  Serial.println(gps.latitude + gps.longitude);
 
   String data = gps.latitude + "," + gps.longitude;
   saveData(data, "gps.txt");
