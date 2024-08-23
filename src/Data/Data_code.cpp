@@ -6,19 +6,7 @@ bool SPIFFSState = false;
 
 bool SPIFFSBegin()
 {
-  bool start = SPIFFS.begin();
-  if (!start)
-  {
-    SPIFFSState = false;
-    Serial.println("An Error has occurred while mounting SPIFFS\nFormating SPIFFS...");
-    SPIFFS.format(); // Do not use this when in production, rather made the user format it manually
-    return SPIFFSBegin();
-  }
-  else
-  {
-    SPIFFSState = true;
-    Serial.println("SPIFFS mounted successfully");
-  }
+  bool start = SPIFFS.begin(true);
 
   return start;
 }
