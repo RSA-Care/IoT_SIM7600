@@ -95,6 +95,9 @@ void header(String signal, String topic)
 void gpsDisplay(String latitude, String longitude)
 {
   int cursorHeight = 24;
+
+  display.fillRect(0, cursorHeight, SCREEN_WIDTH, 8, BLACK);
+
   display.setCursor(0, cursorHeight);
   display.print(latitude);
   display.setCursor(SCREEN_WIDTH / 2, cursorHeight);
@@ -106,6 +109,8 @@ void dhtDisplay(String temperature, String humidity)
 {
   int cursorWidth = SCREEN_WIDTH / 2;
   int cursorHeight = 40;
+
+  display.fillRect(cursorWidth, cursorHeight, SCREEN_WIDTH / 2, SCREEN_HEIGHT, BLACK);
 
   display.setCursor(cursorWidth, cursorHeight);
   display.print(temperature + " C");
