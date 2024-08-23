@@ -55,7 +55,7 @@ String sendAT(String command, String expected = "")
 
     response += "\n";
   }
-  delay(500);
+  // delay(500);
 
   if (millis() - startTime > 120000)
   {
@@ -134,6 +134,7 @@ void SIM7600Gbegin()
   {
     print("=");
   }
+  print("\n");
   println("SIM7600G");
 
   sendAT("ATI");
@@ -197,17 +198,70 @@ gpsReading getGPS()
   +CGPSINFO: 0614.354283,S,10651.371415,E,230624,104328.0,2.9,0.0,
 
   OK
+
+
+  EXPECTED OUTCOME: -6.9692767,107.6255821
   */
   String gps_data = sendAT("AT+CGPSINFO");
   bool complete = false;
 
-  String _data = splitString(gps_data, ' ', 1);
+  gps_data.replace("+CGPSINFO: ", "");
+  // String _data = splitString(gps_data, ' ', 1);
 
-  float lat = splitString(_data, ',').toFloat();
-  float lon = splitString(_data, ',', 2).toFloat();
+  String _data = splitString(gps_data, '\n', 1);
 
-  gps.latitude = String(lat);
-  gps.longitude = String(lon);
+  String lat = splitString(_data, ',');
+  String lon = splitString(_data, ',', 2);
+
+  if (splitString(_data, ',').isEmpty())
+  {
+    header(getData("topic.txt"), false);
+    String saved_data = getData("gps.txt");
+    Serial.println(saved_data);
+    if (!saved_data.isEmpty())
+    {
+      Serial.println("SPIFFS ERROR");
+      Serial.println("Saved data is empty!");
+      return gps;
+    }
+
+    gps.latitude = splitString(saved_data, ',');
+    gps.longitude = splitString(saved_data, ',', 1);
+    return gps;
+  }
+
+  header(getData("topic.txt"), true);
+
+  String NS = splitString(_data, ',', 1);
+  String startLat;
+  if (NS.indexOf("S") != -1)
+  {
+    startLat = "-";
+  }
+  else if (NS.indexOf("N") != -1)
+  {
+    startLat = "+";
+  }
+
+  // Latitude || 0614.354283
+  String lat_deg = lat.substring(1, 2);
+  String lat_min = lat.substring(2, 8); // 5 decimal
+
+  // Longitude || 10651.371415
+  String lon_deg = lon.substring(0, 3);
+  String lon_min = lon.substring(3, 9); // 5 decimal
+
+  // Cleaning
+  lat_min.replace(".", "");
+  lon_min.replace(".", "");
+
+  gps.latitude = startLat + lat_deg + "." + lat_min;
+  gps.longitude = lon_deg + "." + lon_min;
+
+  Serial.println(gps.latitude + gps.longitude);
+
+  String data = gps.latitude + "," + gps.longitude;
+  saveData(data, "gps.txt");
 
   return gps;
 }

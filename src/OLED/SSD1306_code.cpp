@@ -28,8 +28,8 @@ void oledBegin()
 
 void clearScreen()
 {
-  display.clearDisplay();
   display.setCursor(0, 0);
+  display.clearDisplay();
   display.display();
 }
 
@@ -65,26 +65,34 @@ void println(String message)
 }
 
 // Execute only once
-void header(String signal, String topic)
+void header(String topic, bool gps)
 {
-  clearScreen();
+  display.drawRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, BLACK);
   String text = "DST Tracker";
   int width = display.width();
-  int box_height = 14;
+  int box_height = 15;
   display.drawRect(0, 0, width, box_height, SSD1306_WHITE);
-  display.setCursor(3, 3);
+  if (gps)
+  {
+    display.fillCircle(display.width() - 14 - (topic.length() * 6), 6, 4, WHITE);
+  }
+  else
+  {
+    display.drawCircle(display.width() - 14 - (topic.length() * 6), 7, 4, INVERSE);
+  }
+  display.setCursor(3, 4);
   display.print(text);
   display.setCursor(display.width() - 3 - (topic.length() * 6), 3);
   display.println(topic);
 
   // gps data
-  display.setCursor(0, box_height + 2);
+  display.setCursor(0, box_height + 3);
   display.print("Latitude");
-  display.setCursor(SCREEN_WIDTH / 2, box_height + 2);
+  display.setCursor(SCREEN_WIDTH / 2, box_height + 3);
   display.print("Longitude");
 
   // dht data
-  display.setCursor(0, 40);
+  display.setCursor(0, 41);
   display.println("Temp");
   display.println("Humidity");
 
@@ -94,13 +102,13 @@ void header(String signal, String topic)
 // After initialization only
 void gpsDisplay(String latitude, String longitude)
 {
-  int cursorHeight = 24;
+  int cursorHeight = 26;
 
-  display.fillRect(0, cursorHeight, SCREEN_WIDTH, 8, BLACK);
+  display.fillRect(0, cursorHeight, SCREEN_WIDTH, 12, BLACK);
 
-  display.setCursor(0, cursorHeight);
+  display.setCursor(1, cursorHeight);
   display.print(latitude);
-  display.setCursor(SCREEN_WIDTH / 2, cursorHeight);
+  display.setCursor((SCREEN_WIDTH / 2) + 1, cursorHeight);
   display.print(longitude);
   display.display();
 }
@@ -108,7 +116,7 @@ void gpsDisplay(String latitude, String longitude)
 void dhtDisplay(String temperature, String humidity)
 {
   int cursorWidth = SCREEN_WIDTH / 2;
-  int cursorHeight = 40;
+  int cursorHeight = 41;
 
   display.fillRect(cursorWidth, cursorHeight, SCREEN_WIDTH / 2, SCREEN_HEIGHT, BLACK);
 
