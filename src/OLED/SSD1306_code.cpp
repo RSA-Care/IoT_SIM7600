@@ -74,10 +74,11 @@ void header(String topic, bool gps)
   display.drawRect(0, 0, width, box_height, SSD1306_WHITE);
   if (gps)
   {
-    display.fillCircle(display.width() - 14 - (topic.length() * 6), 6, 4, WHITE);
+    display.fillCircle(display.width() - 14 - (topic.length() * 6), 7, 4, WHITE);
   }
   else
   {
+    display.fillCircle(display.width() - 14 - (topic.length() * 6), 7, 4, BLACK);
     display.drawCircle(display.width() - 14 - (topic.length() * 6), 7, 4, INVERSE);
   }
   display.setCursor(3, 4);

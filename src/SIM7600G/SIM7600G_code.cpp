@@ -48,6 +48,10 @@ String sendAT(String command, String expected = "")
       response = "";
       ok_status = true;
     }
+    else if (response.indexOf("+CME ERROR: SIM not inserted") != -1)
+    {
+      sim_ready = false;
+    }
     else
     {
       response += temp;
@@ -104,23 +108,24 @@ void SIM7600Gbegin()
   Serial.println("Start time : " + String(startTime));
   SerialAT.begin(115200);
 
-  while (!ready && (millis() - startTime) < 60000)
-  {
-    while (SerialAT.available())
-    {
-      String response = SerialAT.readString();
-      println(response);
-      if (response.indexOf("+CME ERROR: SIM not inserted") != -1)
-      {
-        sim_ready = false;
-      }
-      if (response.indexOf("RDY") != -1)
-      {
-        ready = true;
-      }
-    }
-    delay(500);
-  }
+  sendAT("AT").indexOf("OK") != -1 ? ready = true : ready = false;
+  // while (!ready && (millis() - startTime) < 60000)
+  // {
+  //   while (SerialAT.available())
+  //   {
+  //     String response = SerialAT.readString();
+  //     println(response);
+  //     if (response.indexOf("+CME ERROR: SIM not inserted") != -1)
+  //     {
+  //       sim_ready = false;
+  //     }
+  //     if (response.indexOf("RDY") != -1)
+  //     {
+  //       ready = true;
+  //     }
+  //   }
+  //   delay(500);
+  // }
 
   if (!sim_ready || !ready)
   {
@@ -141,7 +146,7 @@ void SIM7600Gbegin()
 
   sendAT("AT+CMEE=2");
 
-  beginGPS();
+  // beginGPS();
 
   unsigned long endTime = millis() - startTime;
   float duration = endTime / 1000;
@@ -206,6 +211,8 @@ gpsReading getGPS()
   bool complete = false;
 
   gps_data.replace("+CGPSINFO: ", "");
+  gps_data.replace("OK", "");
+  gps_data.trim();
   // String _data = splitString(gps_data, ' ', 1);
 
   String _data = splitString(gps_data, '\n', 1);
@@ -213,24 +220,10 @@ gpsReading getGPS()
   String lat = splitString(_data, ',');
   String lon = splitString(_data, ',', 2);
 
-  if (splitString(_data, ',').isEmpty())
+  if (lat.isEmpty() && lon.isEmpty())
   {
-    header(getData("topic.txt"), false);
-    String saved_data = getData("gps.txt");
-    Serial.println(saved_data);
-    if (!saved_data.isEmpty())
-    {
-      Serial.println("SPIFFS ERROR");
-      Serial.println("Saved data is empty!");
-      return gps;
-    }
-
-    gps.latitude = splitString(saved_data, ',');
-    gps.longitude = splitString(saved_data, ',', 1);
     return gps;
   }
-
-  header(getData("topic.txt"), true);
 
   String NS = splitString(_data, ',', 1);
   String startLat;
@@ -258,10 +251,73 @@ gpsReading getGPS()
   gps.latitude = startLat + lat_deg + "." + lat_min;
   gps.longitude = lon_deg + "." + lon_min;
 
-  Serial.println(gps.latitude + gps.longitude);
-
   String data = gps.latitude + "," + gps.longitude;
   saveData(data, "gps.txt");
+
+  return gps;
+}
+
+gpsReading getGPSNMEA()
+{
+  gpsReading gps;
+  String url = "supl.google.com:7275";
+  if (!gps_state)
+  {
+    sendAT("AT+CGPS=0");
+
+    if (sendAT("AT+CGPSURL?").indexOf(url) == -1)
+    {
+      /**
+      URL:
+        - supl.google.com:7275 -> valid TLS certificate
+        - supl.google.com:7276 -> non certificate
+      */
+
+      String supl_google = sendAT("AT+CGPSURL=\"" + url + "\""); // Set AGPS URL
+      sendAT("AT+CGPSSSL=0");                                    // Set Security Mode
+      Serial.println(supl_google);
+    }
+
+    /**
+     * AT+CGPS=1,2 -> UE-BASED
+     * AT+CGPS=1,3 -> UE-ASSISTED
+     */
+
+    String begin = sendAT("AT+CGPS=1,3");
+    gps_state = begin.indexOf("ERROR") != -1 ? false : true;
+  }
+
+  String gpsInfo = sendAT("AT+CGPSINFO");
+  gpsInfo.replace("OK", "");
+  gpsInfo.replace("+CGPSINFO: ", "");
+  gpsInfo.replace("AT+CGPSINFO", "");
+  gpsInfo.trim();
+
+  String latitude = splitString(gpsInfo, ',');
+  String longitude = splitString(gpsInfo, ',', 2);
+  String compass = splitString(gpsInfo, ',', 1).indexOf("S") != -1 ? "-" : "";
+
+  if (latitude.isEmpty() && longitude.isEmpty())
+  {
+    return gps;
+  }
+
+  Serial.println(latitude + ", " + longitude + ", " + compass);
+
+  // Latitude || 0614.354283
+  String lat_deg = latitude.substring(1, 2);
+  String lat_min = latitude.substring(2, 8); // 5 decimal
+
+  // Longitude || 10651.371415
+  String lon_deg = longitude.substring(0, 3);
+  String lon_min = longitude.substring(3, 9); // 5 decimal
+
+  // Cleaning
+  lat_min.replace(".", "");
+  lon_min.replace(".", "");
+
+  gps.latitude = compass + lat_deg + "." + lat_min;
+  gps.longitude = lon_deg + "." + lon_min;
 
   return gps;
 }

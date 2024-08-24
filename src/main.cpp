@@ -21,8 +21,23 @@ void setup()
 
 void loop()
 {
-  gpsReading gps = getGPS();
+  // gpsReading gps = getGPS();
+  gpsReading gps = getGPSNMEA();
   dhtReading dht = getDHT();
+
+  if (gps.latitude != "0.00" && gps.longitude != "0.00")
+  {
+    header(getData("topic.txt"), true);
+  }
+  else
+  {
+    header(getData("topic.txt"), false);
+    String saved_data = getData("gps.txt");
+    Serial.println(saved_data);
+
+    gps.latitude = splitString(saved_data, ',', 0);
+    gps.longitude = splitString(saved_data, ',', 1);
+  }
 
   // display on oled screen
   gpsDisplay(String(gps.latitude), String(gps.longitude));
