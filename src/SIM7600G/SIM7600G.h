@@ -28,5 +28,6 @@ void beginGPS();
 SIM7600 getDeviceInfo();
 gpsReading getGPS();
 void publish(String payload);
+String splitString(String input, char delimiter, int index);
 
 #endif // SIM7600G_h
