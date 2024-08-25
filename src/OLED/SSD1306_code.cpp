@@ -64,7 +64,6 @@ void println(String message)
   display.display();
 }
 
-// Execute only once
 void header(String topic, bool gps)
 {
   display.drawRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, BLACK);

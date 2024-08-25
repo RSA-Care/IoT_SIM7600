@@ -59,7 +59,6 @@ String sendAT(String command, String expected = "")
 
     response += "\n";
   }
-  // delay(500);
 
   if (millis() - startTime > 120000)
   {
@@ -126,8 +125,6 @@ void SIM7600Gbegin()
   sendAT("ATI");
 
   sendAT("AT+CMEE=2");
-
-  // beginGPS();
 
   unsigned long endTime = millis() - startTime;
   float duration = endTime / 1000;
@@ -199,7 +196,6 @@ gpsReading getGPS()
   gps_data.replace("+CGPSINFO: ", "");
   gps_data.replace("OK", "");
   gps_data.trim();
-  // String _data = splitString(gps_data, ' ', 1);
 
   String _data = splitString(gps_data, '\n', 1);
 
@@ -242,9 +238,6 @@ gpsReading getGPS()
 
   gps.latitude = startLat + lat_deg + "." + lat_min_5dec;
   gps.longitude = lon_deg + "." + lon_min_5dec;
-
-  Serial.println(gps.latitude);
-  Serial.println(gps.longitude);
 
   String data = gps.latitude + "," + gps.longitude;
   saveData(data, "gps.txt");

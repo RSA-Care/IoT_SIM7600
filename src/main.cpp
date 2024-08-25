@@ -22,7 +22,6 @@ void setup()
 void loop()
 {
   gpsReading gps = getGPS();
-  // gpsReading gps = getGPSNMEA();
   dhtReading dht = getDHT();
 
   if (gps.latitude != "0.00" && gps.longitude != "0.00")

@@ -2,8 +2,6 @@
 
 bool SPIFFSState = false;
 
-// const char *filename = "/data.json";
-
 bool SPIFFSBegin()
 {
   bool start = SPIFFS.begin(true);
