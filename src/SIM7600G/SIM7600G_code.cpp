@@ -24,6 +24,9 @@ String sendAT(String command, String expected = "")
     String temp = SerialAT.readStringUntil('\n');
     temp.trim();
     Serial.println(temp);
+
+    response += temp;
+
     if (expected.length() > 0 && temp.indexOf(expected) != -1)
     {
       response = temp;
@@ -46,15 +49,12 @@ String sendAT(String command, String expected = "")
     else if (temp.indexOf("RDY") != -1)
     {
       response = "";
+      ready = true;
       ok_status = true;
     }
     else if (response.indexOf("+CME ERROR: SIM not inserted") != -1)
     {
       sim_ready = false;
-    }
-    else
-    {
-      response += temp;
     }
 
     response += "\n";
@@ -108,26 +108,7 @@ void SIM7600Gbegin()
   Serial.println("Start time : " + String(startTime));
   SerialAT.begin(115200);
 
-  sendAT("AT").indexOf("OK") != -1 ? ready = true : ready = false;
-  // while (!ready && (millis() - startTime) < 60000)
-  // {
-  //   while (SerialAT.available())
-  //   {
-  //     String response = SerialAT.readString();
-  //     println(response);
-  //     if (response.indexOf("+CME ERROR: SIM not inserted") != -1)
-  //     {
-  //       sim_ready = false;
-  //     }
-  //     if (response.indexOf("RDY") != -1)
-  //     {
-  //       ready = true;
-  //     }
-  //   }
-  //   delay(500);
-  // }
-
-  if (!sim_ready || !ready)
+  if (!sim_ready)
   {
     return;
   }
@@ -150,6 +131,8 @@ void SIM7600Gbegin()
 
   unsigned long endTime = millis() - startTime;
   float duration = endTime / 1000;
+  Serial.print("Ready status : ");
+  Serial.println(ready ? "Ready" : "Failure");
   println("Duration : " + String(duration) + " Second");
   Serial.println("=== End of SIM7600 Initialization ===");
 }
@@ -191,6 +174,9 @@ String splitString(String input, char delimiter, int index = 0)
 
 gpsReading getGPS()
 {
+  /**
+   * https://electronics.stackexchange.com/questions/601046/assisted-gps-agps-on-sim7600-module-does-not-work
+   */
   gpsReading gps;
   if (!gps_state)
   {
@@ -238,86 +224,30 @@ gpsReading getGPS()
 
   // Latitude || 0614.354283
   String lat_deg = lat.substring(1, 2);
-  String lat_min = lat.substring(2, 8); // 5 decimal
+  String lat_min = lat.substring(2);
+  lat_min.replace(".", "");
+  float lat_min_dec = lat_min.toInt() / 6;
+  String lat_min_5dec = String(lat_min_dec).substring(0, 5); // 5 decimal
 
   // Longitude || 10651.371415
   String lon_deg = lon.substring(0, 3);
-  String lon_min = lon.substring(3, 9); // 5 decimal
+  String lon_min = lon.substring(3);
+  lon_min.replace(".", "");
+  float lon_min_dec = lon_min.toInt() / 6;
+  String lon_min_5dec = String(lon_min_dec).substring(0, 5); // 5 decimal
 
   // Cleaning
-  lat_min.replace(".", "");
-  lon_min.replace(".", "");
+  lat_min_5dec.replace(".", "");
+  lon_min_5dec.replace(".", "");
 
-  gps.latitude = startLat + lat_deg + "." + lat_min;
-  gps.longitude = lon_deg + "." + lon_min;
+  gps.latitude = startLat + lat_deg + "." + lat_min_5dec;
+  gps.longitude = lon_deg + "." + lon_min_5dec;
+
+  Serial.println(gps.latitude);
+  Serial.println(gps.longitude);
 
   String data = gps.latitude + "," + gps.longitude;
   saveData(data, "gps.txt");
-
-  return gps;
-}
-
-gpsReading getGPSNMEA()
-{
-  gpsReading gps;
-  String url = "supl.google.com:7275";
-  if (!gps_state)
-  {
-    sendAT("AT+CGPS=0");
-
-    if (sendAT("AT+CGPSURL?").indexOf(url) == -1)
-    {
-      /**
-      URL:
-        - supl.google.com:7275 -> valid TLS certificate
-        - supl.google.com:7276 -> non certificate
-      */
-
-      String supl_google = sendAT("AT+CGPSURL=\"" + url + "\""); // Set AGPS URL
-      sendAT("AT+CGPSSSL=0");                                    // Set Security Mode
-      Serial.println(supl_google);
-    }
-
-    /**
-     * AT+CGPS=1,2 -> UE-BASED
-     * AT+CGPS=1,3 -> UE-ASSISTED
-     */
-
-    String begin = sendAT("AT+CGPS=1,3");
-    gps_state = begin.indexOf("ERROR") != -1 ? false : true;
-  }
-
-  String gpsInfo = sendAT("AT+CGPSINFO");
-  gpsInfo.replace("OK", "");
-  gpsInfo.replace("+CGPSINFO: ", "");
-  gpsInfo.replace("AT+CGPSINFO", "");
-  gpsInfo.trim();
-
-  String latitude = splitString(gpsInfo, ',');
-  String longitude = splitString(gpsInfo, ',', 2);
-  String compass = splitString(gpsInfo, ',', 1).indexOf("S") != -1 ? "-" : "";
-
-  if (latitude.isEmpty() && longitude.isEmpty())
-  {
-    return gps;
-  }
-
-  Serial.println(latitude + ", " + longitude + ", " + compass);
-
-  // Latitude || 0614.354283
-  String lat_deg = latitude.substring(1, 2);
-  String lat_min = latitude.substring(2, 8); // 5 decimal
-
-  // Longitude || 10651.371415
-  String lon_deg = longitude.substring(0, 3);
-  String lon_min = longitude.substring(3, 9); // 5 decimal
-
-  // Cleaning
-  lat_min.replace(".", "");
-  lon_min.replace(".", "");
-
-  gps.latitude = compass + lat_deg + "." + lat_min;
-  gps.longitude = lon_deg + "." + lon_min;
 
   return gps;
 }
@@ -341,10 +271,18 @@ void MQTTStart()
   if (start.indexOf("+CMQTTSTART: 23") != -1)
   {
     Serial.println("MQTT Opened");
+
     String client_acquired = sendAT("AT+CMQTTACCQ=0,\"" + client_id + "\",0,4");
     Serial.println("Client id: " + client_id);
 
-    String connection = sendAT("AT+CMQTTCONNECT=0,\"tcp://" + broker_ip + "\",120,1");
+    String connection = sendAT("AT+CMQTTCONNECT=0,\"tcp://" + broker_ip + "\",60,1");
+    if (connection.indexOf("+CMQTTCONNECT: 0,13") != -1)
+    {
+      sendAT("AT+CMQTTDISC=0, 120"); // Disconnect
+      sendAT("AT+CMQTTREL=0");       // Client Release
+      sendAT("AT+CMQTTSTOP");        // Stop MQTT
+    }
+
     return;
   }
 
@@ -367,14 +305,13 @@ void publish(String payload)
   bool publish = false;
   bool error = false;
   SerialAT.print("AT+CMQTTTOPIC=0," + String(topic.length()) + "\r");
-  delay(500);
   while (!set_topic && !error)
   {
     while (SerialAT.available())
     {
       String temp = SerialAT.readStringUntil('\n');
       Serial.println(temp);
-      if (temp.indexOf("+CMQTTTOPIC: 0,11") != -1)
+      if (temp.indexOf("+CMQTTTOPIC: 0,11") != -1 || temp.indexOf("+CMQTTTOPIC: 0,14") != -1)
       {
         Serial.println("ERROR: no connection\nStarting MQTT on SIM7600...");
         MQTTStart();
@@ -390,8 +327,6 @@ void publish(String payload)
       }
       SerialAT.print(topic + "\r");
     }
-
-    delay(500);
   }
 
   if (error)
@@ -400,7 +335,6 @@ void publish(String payload)
   }
 
   SerialAT.print("AT+CMQTTPAYLOAD=0," + String(payload.length()) + "\r");
-  delay(500);
   while (!set_payload && !error)
   {
     while (SerialAT.available())
@@ -413,8 +347,6 @@ void publish(String payload)
       }
       SerialAT.print(payload + "\r");
     }
-
-    delay(500);
   }
 
   if (error)
