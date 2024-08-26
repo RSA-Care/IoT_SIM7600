@@ -202,7 +202,7 @@ gpsReading getGPS()
   String lat = splitString(_data, ',');
   String lon = splitString(_data, ',', 2);
 
-  if (lat.isEmpty() && lon.isEmpty())
+  if ((lat.isEmpty() && lon.isEmpty()) || (lat.length() < 7 && lon.length() < 7))
   {
     return gps;
   }
