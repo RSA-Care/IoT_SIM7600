@@ -94,9 +94,6 @@ bool randomizeMQTTTopic(int length)
   unsigned long seed = millis();
   const char charSet[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
-  clearScreen();
-  println("Starting Randomize Topic.");
-
   String randomText;
   for (int i = 0; i < length; i++)
   {
@@ -104,17 +101,17 @@ bool randomizeMQTTTopic(int length)
     randomText += charSet[randomIndex];
   }
 
-  println("TOPIC : " + randomText);
-  println("Saving topic.");
+  Serial.println("TOPIC : " + randomText);
+  Serial.println("Saving topic.");
 
   if (saveData(randomText, "topic.txt"))
   {
-    println("Topic saved successfully.");
+    Serial.println("Topic saved successfully.");
     return true;
   }
   else
   {
-    println("ERROR: an error has occured when attempting to save topic\nSPIFFS ERROR");
+    Serial.println("ERROR: an error has occured when attempting to save topic\nSPIFFS ERROR");
     return false;
   }
 }
