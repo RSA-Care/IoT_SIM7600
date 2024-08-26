@@ -86,12 +86,14 @@ String sendAT(String command, String expected = "")
 
 void beginGPS()
 {
+  int mode = 1;
+  String _mode[] = {"", "1", "2", "3"};
   String check = sendAT("AT+CGPS?");
-  if (check.indexOf("+CGPS: 0,1") != -1)
+  if (check.indexOf("+CGPS: 0") != -1)
   {
     Serial.println("GPS Disabled");
     Serial.println("Starting GPS...");
-    sendAT("AT+CGPS=1");
+    sendAT("AT+CGPS=1," + _mode[mode]);
   }
   else if (check.indexOf("+CGPS: 1,1") != -1)
   {
@@ -198,7 +200,7 @@ gpsReading getGPS()
   gps_data.replace("OK", "");
   gps_data.trim();
 
-  String _data = splitString(gps_data, '\n');
+  String _data = splitString(gps_data, '\n', 1);
 
   String lat = splitString(_data, ',');
   String lon = splitString(_data, ',', 2);
@@ -220,8 +222,9 @@ gpsReading getGPS()
   }
 
   // Latitude || 0614.354283
-  String lat_deg = lat.substring(1, 2);
-  String lat_min = lat.substring(2);
+  String lat_deg = lat.substring(0, 1);
+  lat_deg.replace("0", "");
+  String lat_min = lat.substring(1);
   lat_min.replace(".", "");
   float lat_min_dec = lat_min.toInt() / 6;
   String lat_min_5dec = String(lat_min_dec).substring(0, 5); // 5 decimal
