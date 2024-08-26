@@ -43,5 +43,5 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           artifacts: "*"
-          tag: ${{ github.ref }}
+          generateReleaseNotes: true
           bodyFile: README.md
