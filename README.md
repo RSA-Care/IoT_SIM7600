@@ -1,3 +1,5 @@
+[![PlatformIO CI](https://github.com/RSA-Care/IoT_SIM7600/actions/workflows/build.yaml/badge.svg?branch=main&event=status)](https://github.com/RSA-Care/IoT_SIM7600/actions/workflows/build.yaml)
+
 # GPS Tracker with SIM7600G and MQTT
 
 This project demonstrates a GPS tracker using the SIM7600G module and MQTT for data transmission.
