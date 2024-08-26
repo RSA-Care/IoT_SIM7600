@@ -193,11 +193,12 @@ gpsReading getGPS()
   String gps_data = sendAT("AT+CGPSINFO");
   bool complete = false;
 
+  gps_data.replace("AT+CGPSINFO", "");
   gps_data.replace("+CGPSINFO: ", "");
   gps_data.replace("OK", "");
   gps_data.trim();
 
-  String _data = splitString(gps_data, '\n', 1);
+  String _data = splitString(gps_data, '\n');
 
   String lat = splitString(_data, ',');
   String lon = splitString(_data, ',', 2);
